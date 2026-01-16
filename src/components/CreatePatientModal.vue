@@ -150,6 +150,7 @@ export default {
         ],
         numero_documento: [
           { required: true, message: "Requerido", trigger: "blur" },
+          { pattern: /^\d+$/, message: "Solo puede contener números", trigger: "blur" },
           { max: 20, message: "Máximo 20 caracteres", trigger: "blur" },
         ],
         nombre1: [
@@ -231,22 +232,51 @@ export default {
           });
 
           if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || "Error al crear el paciente");
+            // Intenta parsear como JSON primero
+            let errorText = await response.text();
+            let errorMsg = errorText;
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMsg = errorJson.message || errorText;
+              // Si hay errores de validación, los concatenamos
+              if (errorJson.errors) {
+                errorMsg += ': ' + Object.values(errorJson.errors).flat().join(' ');
+              }
+            } catch (e) {
+              // Ignore JSON parse errors, use raw error text
+            }
+            throw new Error(errorMsg);
           }
 
           this.$message.success("Paciente creado exitosamente");
+          this.resetForm();
           this.$emit("created");
           this.closeModal();
         } catch (err) {
           console.error("Error al crear paciente:", err);
-          this.$message.error(err.message || "Error al crear el paciente");
+          this.$message.error(err.message.message || "Error al crear el paciente");
         } finally {
           this.saving = false;
         }
       });
     },
+    resetForm() {
+      this.form = {
+        tipo_documento_id: null,
+        numero_documento: "",
+        nombre1: "",
+        nombre2: "",
+        apellido1: "",
+        apellido2: "",
+        genero_id: null,
+        correo: "",
+        departamento_id: null,
+        municipio_id: null,
+      };
+      this.$refs.formRef?.resetFields();
+    },
     closeModal() {
+      this.resetForm();
       this.$emit("close");
     },
   },

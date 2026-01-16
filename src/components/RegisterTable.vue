@@ -91,7 +91,7 @@
     </el-table>
 
     <!-- Paginación -->
-    <div class="pagination-container">
+    <div class="pagination-container" v-if="totalCount > limit">
       <el-pagination
         background
         layout="prev, pager, next"
@@ -121,6 +121,7 @@
       :visible.sync="isEditPatientModalVisible"
       :patient-id="selectedPatientId"
       @close="isEditPatientModalVisible = false"
+      @saved="handlePatientEdited"
     />
   </div>
 </template>
@@ -148,7 +149,7 @@ export default {
     return {
       patients: [],
       totalCount: 0,
-      limit: 15,
+      limit: 10,
       currentPage: 1,
       filterField: "",
       searchQuery: "",
@@ -201,8 +202,9 @@ export default {
 
         const data = await res.json();
         this.patients = data.data || [];
-        this.totalCount = data.meta?.total || 0;
-        this.currentPage = data.meta?.current_page || 1;
+        this.totalCount = data.total || 0;
+        this.currentPage = data.current_page || 1;
+        this.limit = data.per_page || this.limit;
       } catch (err) {
         console.error("Error al obtener pacientes:", err);
         this.$message?.error("Error al cargar los pacientes");
@@ -274,6 +276,9 @@ export default {
       this.selectedPatient = null;
     },
     handlePatientCreated() {
+      this.fetchPatients(this.currentPage);
+    },
+    handlePatientEdited() {
       this.fetchPatients(this.currentPage);
     },
     viewPatient(patient) {
