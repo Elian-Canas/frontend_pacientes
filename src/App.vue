@@ -133,24 +133,29 @@ export default {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
+  min-height: 100vh;
   height: 100vh;
   margin: 0;
   padding: 0;
+  background: linear-gradient(135deg, #e0e7ef 0%, #f5f7fa 100%);
 }
 
 body {
   margin: 0 !important;
   padding: 0 !important;
+  background: transparent !important;
 }
 
 /* --- Login --- */
 .login-background {
   background: linear-gradient(135deg, #4b6cb7, #182848);
   min-height: 100vh;
+  width: 100vw;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 0;
+  margin: 0;
 }
 
 .login-card {
@@ -189,12 +194,14 @@ body {
   display: flex;
   height: 100vh;
   overflow: hidden;
+  background: transparent;
+  margin: 0;
+  padding: 0;
 }
 
 .sidebar {
   flex-shrink: 0;
   height: 100%;
-  /* Ajusta el ancho según tu Sidebar */
 }
 
 .main-content {
@@ -202,5 +209,14 @@ body {
   overflow-y: auto;
   background-color: #f5f7fa;
   padding: 20px;
+}
+</style>
+
+<style>
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
 }
 </style>

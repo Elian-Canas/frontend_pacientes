@@ -37,15 +37,6 @@
         <el-button @click="clearFilters" size="small" type="info" class="action-btn">
           Limpiar
         </el-button>
-        <el-button
-          @click="exportToExcel"
-          size="small"
-          icon="el-icon-document"
-          type="success"
-          class="action-btn"
-        >
-          Generar Excel
-        </el-button>
       </div>
 
       <!-- Botones de acción: Logout + Crear Paciente -->
@@ -88,6 +79,13 @@
             size="mini"
             type="primary"
             @click="editPatient(scope.row)"
+          ></el-button>
+          <el-button
+            icon="el-icon-delete"
+            size="mini"
+            type="danger"
+            @click="deletePatient(scope.row)"
+            title="Eliminar paciente"
           ></el-button>
         </template>
       </el-table-column>
@@ -159,9 +157,10 @@ export default {
       filterField: "",
       searchQuery: "",
       filterOptions: [
-        { value: "numero_documento", label: "Número de Documento" },
-        { value: "nombre1", label: "Primer Nombre" },
-        { value: "apellido1", label: "Primer Apellido" },
+        { value: "primer_nombre", label: "Primer Nombre" },
+        { value: "segundo_nombre", label: "Segundo Nombre" },
+        { value: "primer_apellido", label: "Primer Apellido" },
+        { value: "segundo_apellido", label: "Segundo Apellido" },
         { value: "correo", label: "Correo Electrónico" },
       ],
       isCreatePatientModalVisible: false,
@@ -240,9 +239,15 @@ export default {
         if (!this.isDateFilter) {
           params.append(this.filterField, this.searchQuery.trim());
         }
+        const token = localStorage.getItem('access_token');
 
-        const url = `${API_BASE_URL}/pacientes?${params.toString()}`;
-        const res = await fetch(url);
+        const url = `${API_BASE_URL}/api/pacientes?${params.toString()}`;
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'ngrok-skip-browser-warning': 'true'
+          }
+        });
         if (!res.ok) throw new Error("Error al filtrar pacientes");
 
         const data = await res.json();
@@ -313,6 +318,38 @@ export default {
       setTimeout(() => {
         this.exporting = false;
       }, 800);
+    },
+    async deletePatient(patient) {
+      this.$confirm(
+        `¿Seguro que deseas eliminar al paciente con documento ${patient.numero_documento}?`,
+        'Confirmar eliminación',
+        {
+          confirmButtonText: 'Eliminar',
+          cancelButtonText: 'Cancelar',
+          type: 'warning',
+        }
+      ).then(async () => {
+        try {
+          const token = localStorage.getItem('access_token');
+          const url = `${API_BASE_URL}/api/pacientes/${patient.id}`;
+          const res = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'ngrok-skip-browser-warning': 'true',
+              'Content-Type': 'application/json',
+            },
+          });
+          if (!res.ok) throw new Error('Error al eliminar paciente');
+          this.$message.success('Paciente eliminado correctamente');
+          this.fetchPatients(this.currentPage);
+        } catch (err) {
+          console.error('Error al eliminar paciente:', err);
+          this.$message.error('No se pudo eliminar el paciente');
+        }
+      }).catch(() => {
+        // Cancelado
+      });
     },
     async logout() {
       try {
