@@ -15,14 +15,14 @@
         v-loading="loading"
       >
         <!-- Tipo de Documento -->
-        <el-form-item label="Tipo de Documento" prop="tipo_documento_id">
+        <el-form-item label="Tipo de documento" prop="tipo_documento_id" v-if="tiposDocumentos.length > 0">
           <el-select
             v-model="form.tipo_documento_id"
             placeholder="Seleccione"
             filterable
           >
             <el-option
-              v-for="tipo in tiposDocumento"
+              v-for="tipo in tiposDocumentos"
               :key="tipo.id"
               :label="tipo.nombre"
               :value="tipo.id"
@@ -52,13 +52,17 @@
         </el-form-item>
 
         <!-- Género -->
-        <el-form-item label="Género" prop="genero_id">
-          <el-select v-model="form.genero_id" placeholder="Seleccione">
+        <el-form-item label="Genero" prop="genero_id" v-if="generos.length > 0">
+          <el-select
+            v-model="form.genero_id"
+            placeholder="Seleccione"
+            filterable
+          >
             <el-option
-              v-for="genero in generos"
-              :key="genero.id"
-              :label="genero.nombre"
-              :value="genero.id"
+              v-for="gen in generos"
+              :key="gen.id"
+              :label="gen.nombre"
+              :value="gen.id"
             />
           </el-select>
         </el-form-item>
@@ -74,7 +78,7 @@
             v-model="form.departamento_id"
             placeholder="Seleccione"
             filterable
-            @change="onDepartamentoChange"
+            v-if="departamentos.length > 0"
           >
             <el-option
               v-for="depto in departamentos"
@@ -86,7 +90,11 @@
         </el-form-item>
 
         <el-form-item label="Municipio" prop="municipio_id" v-if="municipios.length > 0">
-          <el-select v-model="form.municipio_id" placeholder="Seleccione" filterable>
+          <el-select
+            v-model="form.municipio_id"
+            placeholder="Seleccione"
+            filterable
+          >
             <el-option
               v-for="mun in municipios"
               :key="mun.id"
@@ -153,11 +161,21 @@ export default {
     };
   },
   watch: {
-    visible(val) {
-      this.localVisible = val;
-      if (val && this.patientId) {
-        this.loadCatalogs();
-        this.fetchPatientDetails(this.patientId);
+    visible: {
+      handler(val) {
+        this.localVisible = val;
+        if (val && this.patientId) {
+          this.loadCatalogs();
+          this.fetchPatientDetails(this.patientId);
+        }
+      },
+      immediate: true
+    },
+    patientId: {
+      handler(newId) {
+        if (newId && this.localVisible) {
+          this.fetchPatientDetails(newId);
+        }
       }
     }
   },
@@ -165,39 +183,33 @@ export default {
     async loadCatalogs() {
       try {
         const headers = { 'ngrok-skip-browser-warning': 'true' };
-        const [tiposRes, generosRes, deptosRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/tipo-documentos`, { headers }),
-          fetch(`${API_BASE_URL}/api/generos`, { headers }),
-          fetch(`${API_BASE_URL}/api/departamentos`, { headers })
-        ]);
+        
+        // Cargar tipos de documento
+        const tiposRes = await fetch(`${API_BASE_URL}/api/tipo-documentos`, { headers });
+        if (tiposRes.ok) {
+          this.tiposDocumento = await tiposRes.json();
+        }
 
-        if (tiposRes.ok) this.tiposDocumento = await tiposRes.json();
-        if (generosRes.ok) this.generos = await generosRes.json();
-        if (deptosRes.ok) this.departamentos = await deptosRes.json();
+        // Cargar géneros
+        const generosRes = await fetch(`${API_BASE_URL}/api/generos`, { headers });
+        if (generosRes.ok) {
+          this.generos = await generosRes.json();
+        }
+
+        // Cargar departamentos
+        const deptosRes = await fetch(`${API_BASE_URL}/api/departamentos`, { headers });
+        if (deptosRes.ok) {
+          this.departamentos = await deptosRes.json();
+        }
+
+        // Esperar a que Vue procese los cambios
+        await this.$nextTick();
+        
       } catch (err) {
         console.error("Error al cargar catálogos:", err);
         this.$message.error("Error al cargar opciones");
       }
     },
-
-    async onDepartamentoChange(deptoId) {
-      this.form.municipio_id = null;
-      this.municipios = [];
-      if (!deptoId) return;
-
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/municipios?departamento_id=${deptoId}`, {
-          headers: { 'ngrok-skip-browser-warning': 'true' }
-        });
-        if (res.ok) {
-          this.municipios = await res.json();
-        }
-      } catch (err) {
-        console.error("Error al cargar municipios:", err);
-        this.$message.error("Error al cargar municipios");
-      }
-    },
-
     async fetchPatientDetails(id) {
       this.loading = true;
       try {
@@ -211,28 +223,59 @@ export default {
         if (!res.ok) throw new Error("Error al cargar el paciente");
         const data = await res.json();
 
-        this.form = {
-          tipo_documento_id: data.tipo_documento?.id || null,
-          numero_documento: data.numero_documento || "",
-          nombre1: data.primer_nombre || "",
-          nombre2: data.segundo_nombre || "",
-          apellido1: data.primer_apellido || "",
-          apellido2: data.segundo_apellido || "",
-          genero_id: data.genero?.id || null,
-          correo: data.correo || "",
-          departamento_id: data.departamento?.id || null,
-          municipio_id: data.municipio?.id || null
-        };
-
-        // Cargar municipios del departamento actual
-        if (data.departamento?.id) {
-          const munRes = await fetch(`${API_BASE_URL}/api/municipios?departamento_id=${data.departamento.id}`, {
+        // ✅ Cargar municipios ANTES de asignar el form
+        if (data.departamento_id) {
+          const munRes = await fetch(`${API_BASE_URL}/api/municipios`, {
             headers: { 'ngrok-skip-browser-warning': 'true' }
           });
           if (munRes.ok) {
             this.municipios = await munRes.json();
           }
         }
+
+        if (data.departamento_id) {
+          const depaRes = await fetch(`${API_BASE_URL}/api/departamentos`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+          });
+          if (depaRes.ok) {
+            this.departamentos = await depaRes.json();
+          }
+        }
+
+        const genRes = await fetch(`${API_BASE_URL}/api/generos`, {
+          headers: { 'ngrok-skip-browser-warning': 'true' }
+          });
+        if (genRes.ok) {
+          this.generos = await genRes.json();
+        }
+
+        const tiposRes = await fetch(`${API_BASE_URL}/api/tipo-documentos`, {
+          headers: { 'ngrok-skip-browser-warning': 'true' }
+          });
+        if (tiposRes.ok) {
+          this.tiposDocumentos = await tiposRes.json();
+        }
+
+        // ✅ Asignar los valores usando $set para asegurar reactividad
+        await this.$nextTick();
+        
+        this.$set(this.form, 'tipo_documento_id', Number(data.tipo_documento_id));
+        this.$set(this.form, 'numero_documento', data.numero_documento || "");
+        this.$set(this.form, 'nombre1', data.primer_nombre || "");
+        this.$set(this.form, 'nombre2', data.segundo_nombre || "");
+        this.$set(this.form, 'apellido1', data.primer_apellido || "");
+        this.$set(this.form, 'apellido2', data.segundo_apellido || "");
+        this.$set(this.form, 'genero_id', Number(data.genero_id));
+        this.$set(this.form, 'correo', data.correo || "");
+        this.$set(this.form, 'departamento_id', Number(data.departamento_id));
+        this.$set(this.form, 'municipio_id', Number(data.municipio_id));
+        this.$set(this.form, 'departamento', (data.departamento));
+        this.$set(this.form, 'genero', (data.genero));
+        this.$set(this.form, 'tipo_documento', (data.tipo_documento));
+
+        // ✅ Esperar a que Vue actualice el DOM
+        await this.$nextTick();
+
       } catch (err) {
         console.error("Error al cargar paciente:", err);
         this.$message.error("Error al cargar los datos del paciente");

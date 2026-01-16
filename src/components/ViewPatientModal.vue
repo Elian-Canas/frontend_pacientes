@@ -6,13 +6,10 @@
     @close="closeModal"
     append-to-body
   >
-    <el-form :model="form" label-width="160px" ref="formRef">
+    <el-form :model="form" label-width="160px">
       <!-- Tipo de Documento -->
       <el-form-item label="Tipo de Documento">
-        <el-input
-          v-model="form.tipo_documento_nombre"
-          disabled
-        />
+        <el-input v-model="form.tipo_documento_nombre" disabled />
       </el-form-item>
 
       <!-- Número de Documento -->
@@ -63,8 +60,6 @@
 </template>
 
 <script>
-const API_BASE_URL = process.env.VUE_APP_API_BASE_URL;
-
 export default {
   name: "ViewPatientModal",
   props: {
@@ -98,52 +93,36 @@ export default {
       immediate: true,
       handler(newPatient) {
         if (newPatient) {
-          // Si ya vienen los nombres anidados (ej. desde la tabla), úsalos
           this.form = {
-            tipo_documento_nombre: newPatient.tipo_documento?.nombre || newPatient.tipo_documento_nombre || "",
-            numero_documento: newPatient.numero_documento || "",
-            primer_nombre: newPatient.primer_nombre || "",
-            segundo_nombre: newPatient.segundo_nombre || "",
-            primer_apellido: newPatient.primer_apellido || "",
-            segundo_apellido: newPatient.segundo_apellido || "",
-            genero_nombre: newPatient.genero?.nombre || newPatient.genero_nombre || "",
-            correo: newPatient.correo || "",
-            departamento_nombre: newPatient.departamento?.nombre || newPatient.departamento_nombre || "",
-            municipio_nombre: newPatient.municipio?.nombre || newPatient.municipio_nombre || "",
+            tipo_documento_nombre: newPatient.tipo_documento?.nombre || '—',
+            numero_documento: newPatient.numero_documento || '—',
+            primer_nombre: newPatient.primer_nombre || '—',
+            segundo_nombre: newPatient.segundo_nombre || '',
+            primer_apellido: newPatient.primer_apellido || '—',
+            segundo_apellido: newPatient.segundo_apellido || '',
+            genero_nombre: newPatient.genero?.nombre || '—',
+            correo: newPatient.correo || '—',
+            departamento_nombre: newPatient.departamento?.nombre || '—',
+            municipio_nombre: newPatient.municipio?.nombre || '—',
+          };
+        } else {
+          this.form = {
+            tipo_documento_nombre: "",
+            numero_documento: "",
+            primer_nombre: "",
+            segundo_nombre: "",
+            primer_apellido: "",
+            segundo_apellido: "",
+            genero_nombre: "",
+            correo: "",
+            departamento_nombre: "",
+            municipio_nombre: "",
           };
         }
       },
     },
   },
   methods: {
-    async fetchPatientDetails(id) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/pacientes/${id}`, {
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
-        });
-        if (!res.ok) throw new Error("Error al cargar el paciente");
-        const data = await res.json();
-
-        // Asignar nombres de relaciones si no vienen en la tabla
-        this.form = {
-          tipo_documento_nombre: data.tipo_documento?.nombre || "",
-          numero_documento: data.numero_documento || "",
-          primer_nombre: data.primer_nombre || "",
-          segundo_nombre: data.segundo_nombre || "",
-          primer_apellido: data.primer_apellido || "",
-          segundo_apellido: data.segundo_apellido || "",
-          genero_nombre: data.genero?.nombre || "",
-          correo: data.correo || "",
-          departamento_nombre: data.departamento?.nombre || "",
-          municipio_nombre: data.municipio?.nombre || "",
-        };
-      } catch (err) {
-        console.error("Error al cargar paciente:", err);
-        this.$message.error("Error al cargar los datos del paciente");
-      }
-    },
     editPatient() {
       if (!this.patient?.id) {
         console.error("No se puede editar: paciente sin ID");

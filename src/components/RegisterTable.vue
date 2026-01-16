@@ -54,7 +54,6 @@
         >
           Cerrar Sesión
         </el-button>
-
       </div>
     </div>
 
@@ -104,7 +103,7 @@
       />
     </div>
 
-    <!-- Modales -->
+    <!-- Modales (SIN v-if, solo :visible) -->
     <create-patient-modal
       :visible="isCreatePatientModalVisible"
       :mode.sync="modalMode"
@@ -113,18 +112,15 @@
       @created="handlePatientCreated"
     />
     <view-patient-modal
-      v-if="isViewPatientModalVisible"
       :visible.sync="isViewPatientModalVisible"
       :patient="selectedPatient"
       @close="isViewPatientModalVisible = false"
-      ref="viewPatientModal"
       @edit="openEditModal"
     />
     <edit-patient-modal
-      v-if="isEditPatientModalVisible"
-      ref="editPatientModal"
       :visible.sync="isEditPatientModalVisible"
       :patient-id="selectedPatientId"
+      @close="isEditPatientModalVisible = false"
     />
   </div>
 </template>
@@ -188,7 +184,7 @@ export default {
         const res = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'ngrok-skip-browser-warning': 'true' // 👈 solo si usas ngrok
+            'ngrok-skip-browser-warning': 'true'
           }
         });
 
@@ -283,20 +279,12 @@ export default {
     viewPatient(patient) {
       this.selectedPatient = patient;
       this.isViewPatientModalVisible = true;
-      this.$nextTick(() => {
-        if (this.$refs.viewPatientModal) {
-          this.$refs.viewPatientModal.fetchPatientDetails(patient.id);
-        }
-      });
+      // ✅ No se llama a fetchPatientDetails: ViewPatientModal usa la prop directamente
     },
     editPatient(patient) {
       this.selectedPatientId = patient.id;
       this.isEditPatientModalVisible = true;
-      this.$nextTick(() => {
-        if (this.$refs.editPatientModal) {
-          this.$refs.editPatientModal.fetchPatientDetails(patient.id);
-        }
-      });
+      // ✅ No se llama a fetchPatientDetails: EditPatientModal carga automáticamente
     },
     openEditModal(patientId) {
       if (!patientId) {
@@ -304,8 +292,8 @@ export default {
         return;
       }
       this.selectedPatientId = patientId;
-      this.isViewPatientModalVisible = false;
-      this.isEditPatientModalVisible = true;
+      this.isViewPatientModalVisible = false; // Cierra vista
+      this.isEditPatientModalVisible = true;  // Abre edición
     },
     exportToExcel() {
       this.exporting = true;
@@ -373,8 +361,6 @@ export default {
 
         localStorage.removeItem('access_token');
         localStorage.removeItem('token_type');
-
-        // Volver al login
         window.location.reload();
       } catch (err) {
         console.error('Error al cerrar sesión:', err);
