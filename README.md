@@ -1,8 +1,22 @@
-# Sistema de Gestión de Licitaciones
+# Sistema de Gestión de Pacientes
 
 Sistema fullstack para la gestión de pacientes, desarrollado conforme a los requisitos de la prueba técnica de Sinergia 2025. Implementado la interfaz grafica con Vue.js 2.6+. El sistema permite crear, editar, listar y visualizar pacientes con validaciones.
 
+
+### Backend
+- PHP 8.2+
+- Laravel 12
+- JWT Auth (tymon/jwt-auth) para autenticación
+- Eloquent ORM para manejo de datos
+- API Resources para transformación de respuestas
+- Validación de requests con Form Requests
+
+### Base de Datos
+- MySQL 8.0+
+- Migraciones y seeders para gestión de esquema
+
 ## 📋 Frontend
+
 - Vue.js 2.6+
 - Axios y Fetch para consumo de API
 - Element UI (Elegido en este caso por mayor dominio)
@@ -10,25 +24,90 @@ Sistema fullstack para la gestión de pacientes, desarrollado conforme a los req
 - Formularios reactivos con estados de botones condicionales
 
 ## 📋 Infraestructura
+
 - Docker
 - Nginx como servidor web
 - MySQL como base de datos
 
 ## 🏗️ Estructura del Proyecto
+
 ```
-├── frontend/             # Aplicación Vue.js 2.6
-│   ├── src/              # Componentes, vistas, store, servicios
-│   ├── public/           # Assets públicos
-│   ├── package.json      # Dependencias npm
-│   ├── .env              # Variables de entorno
-│   └── vue.config.js     # Configuración de Vue CLI
+├── backend_pacientes/           # Backend Laravel API
+│   ├── app/                     # Código principal de la aplicación (modelos, controladores, requests)
+│   │   ├── Http/Controllers/    # Controladores de la API
+│   │   ├── Models/              # Modelos Eloquent
+│   │   └── ...
+│   ├── config/                  # Configuración de Laravel
+│   ├── database/                # Migraciones, seeders y factories
+│   ├── public/                  # DocumentRoot para Nginx (index.php, assets públicos)
+│   ├── resources/               # Vistas y recursos
+│   ├── routes/                  # Definición de rutas (api.php, web.php)
+│   ├── storage/                 # Archivos generados y logs
+│   ├── tests/                   # Pruebas unitarias y funcionales
+│   ├── composer.json            # Dependencias PHP
+│   ├── Dockerfile               # Dockerfile para backend
+│   └── ...
 │
-├── nginx/                # Configuración de servidor web reverse proxy
-│   └── default.conf      # Configuración de Nginx
+├── frontend_pacientes/          # Aplicación Vue.js 2.6
+│   ├── src/                     # Componentes, vistas, servicios, utilidades
+│   ├── public/                  # Assets públicos
+│   ├── package.json             # Dependencias npm
+│   ├── .env                     # Variables de entorno
+│   ├── vue.config.js            # Configuración de Vue CLI
+│   ├── Dockerfile               # Dockerfile para frontend
+│   └── ...
 │
-├── docker-compose.yml    # Orquestación de contenedores
-└── README.md             # Documentación del proyecto
-``` 
+├── nginx/                       # Configuración de servidor web reverse proxy
+│   └── default.conf             # Configuración de Nginx
+│
+├── docker-compose.yml           # Orquestación de contenedores
+└── README.md                    # Documentación del proyecto
+```
+
+## 🔌 Endpoints de la API
+
+### Autenticación
+
+| Método | Endpoint            | Descripción                        | Auth |
+| ------ | ------------------- | ---------------------------------- | ---- |
+| POST   | `/api/auth/login`   | Iniciar sesión y obtener token JWT | No   |
+| POST   | `/api/auth/logout`  | Cerrar sesión                      | Sí   |
+| POST   | `/api/auth/refresh` | Renovar token JWT                  | Sí   |
+
+**Ejemplo de login:**
+
+```bash
+curl -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"password"}'
+```
+
+### Pacientes (Requiere autenticación)
+
+| Método | Endpoint              | Descripción                     | Auth |
+| ------ | --------------------- | ------------------------------- | ---- |
+| GET    | `/api/pacientes`      | Listar pacientes (paginado)     | Sí   |
+| GET    | `/api/pacientes/{id}` | Obtener detalles de un paciente | Sí   |
+| POST   | `/api/pacientes`      | Crear nuevo paciente            | Sí   |
+| PUT    | `/api/pacientes/{id}` | Actualizar paciente existente   | Sí   |
+| DELETE | `/api/pacientes/{id}` | Eliminar paciente               | Sí   |
+
+**Headers requeridos para rutas protegidas:**
+
+```
+Authorization: Bearer {token_jwt}
+Content-Type: application/json
+Accept: application/json
+```
+
+### Catálogos Maestros (Públicos)
+
+| Método | Endpoint                               | Descripción                        | Auth |
+| ------ | -------------------------------------- | ---------------------------------- | ---- |
+| GET    | `/api/departamentos`                   | Listar departamentos               | No   |
+| GET    | `/api/municipios?departamento_id={id}` | Listar municipios por departamento | No   |
+| GET    | `/api/tipo-documentos`                 | Listar tipos de documento          | No   |
+| GET    | `/api/generos`                         | Listar géneros                     | No   |
 
 ## 🔧 Instalación y Configuración
 
@@ -41,7 +120,7 @@ cd frontend_pacientes
 
 ### 2. Configurar variables de entorno
 
-De acuerdo al archivo de ejemplo y configurar las variables de entorno principalmente indicando la IP de su equipo *Frontend*:
+De acuerdo al archivo de ejemplo y configurar las variables de entorno principalmente indicando la IP de su equipo _Frontend_:
 
 ```bash
 cp .env-production .env
@@ -49,7 +128,9 @@ Dirigirse al archivo src/config.js e indicar la IP del equipo en apiBaseUrl: "ht
 ```
 
 ### 3. Construir e iniciar los contenedores
-Previamente tener instalado en el equipo Docker y ejecutar el siguiente comando 
+
+Previamente tener instalado en el equipo Docker y ejecutar el siguiente comando
+
 ```bash
 docker build -t pacientes-vue .
 ```
@@ -57,27 +138,13 @@ docker build -t pacientes-vue .
 Posteriormente ejecutar el contenedor
 ```bash
 docker run -d \
-  --name vue_front \
-  -p 8080:80 \
+  --name frontend_vue \
+  -p 8081:80 \
   pacientes-vue
 ```
 
-La aplicación estará disponible en `http://localhost:8080`
+La aplicación estará disponible en `http://localhost:8081`
 
-
-## 🔌 Integración con Backend
-
-El frontend se comunica con el backend PHP a través de los siguientes endpoints:
-
-- `GET /ofertas` – Obtener listado paginado de ofertas con filtros opcionales
-- `GET /ofertas/{id}` – Obtener los detalles completos de una oferta específica
-- `GET /ofertas/export` – Exportar listado de ofertas filtrado a Excel
-- `POST /ofertas` – Crear una nueva oferta
-- `PUT /ofertas/{id}` – Actualizar una oferta existente
-- `POST /documentos` – Subir documentos asociados a una oferta (solo en edición)
-- `GET /actividades` – Obtener listado completo de actividades (maestra UNSPSC)
-- `GET /actividades/buscar` – Buscar actividades por nombre o código
-- `GET /actividades/{id}` – Obtener detalles de una actividad específica
 
 ## 🚀 Despliegue
 
